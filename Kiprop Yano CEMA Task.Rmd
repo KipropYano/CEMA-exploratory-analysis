@@ -1,0 +1,255 @@
+---
+title: "Untitled"
+author: "Kiprop Yano"
+date: "2023-07-20"
+output: html_document
+---
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This is an exploratory data analysis of the dataset provided, which contains monthly data for children under five years old, disaggregated at a county level, spanning from January 2021 to June 2023.
+In this analysis, I will examine various variables that offer valuable insights into the health and nutrition status of young children in Kenya. The dataset includes information on the total number of children dewormed, cases of acute malnutrition among children under five, instances of diarrhea, and the number of children who are stunted and underweight within specific age brackets.
+
+```{r}
+#Loading necessary packages 
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+
+```
+```{r}
+#Loading the dataset 
+CEMA_data <- read.csv('https://raw.githubusercontent.com/cema-uonbi/internship_task/main/data/cema_internship_task_2023.csv')
+
+str(CEMA_data)
+```
+```{r}
+# Data Cleaning: Replace missing values with zeros
+CEMA_data[is.na(CEMA_data)] <- 0
+```
+
+Part 1: Comparing the Health Indicators by County 
+
+Qn. Which counties show the higher or lower values for these health indicators: 
+  1. Total number of children dewormed (Total Dewormed)
+  2. Number of children <5 years with acute malnutrition (Acute Malnutrition)
+  3. Number of children stunted (0-6 months, 6-23 months, 24-59 months)
+ 4. Number of children <5 years with diarrhe (Diarrhea cases)
+  5. Number of children who are underweight (0-6 months, 6-23 months, 24-59 months)
+
+```{r}
+# Function to plot a bar chart with rotated x-axis labels
+plot_bar_chart <- function(data, x_col, y_col, title) {
+  ggplot(data, aes_string(x = x_col, y = y_col)) +
+    geom_col() +
+    labs(title = title, x = x_col, y = y_col) +
+    theme(axis.text.x = element_text(angle = 75, hjust = 1))
+
+}
+
+# Call the function to plot the bar chart for "Total Dewormed" with rotated labels
+plot_bar_chart(CEMA_data, "county", "Total.Dewormed", "Total Number of children Dewormed")
+plot_bar_chart(CEMA_data, "county", "Acute.Malnutrition", "Number of children <5 years with Acute Malnutrition")
+plot_bar_chart(CEMA_data, "county", "stunted.6.23.months", "Number of children Stunted from 6 to 23 months")
+plot_bar_chart(CEMA_data, "county", "stunted.0..6.months", "Number of children Stunted from 0 to less than 6 months")
+plot_bar_chart(CEMA_data, "county", "stunted.24.59.months", "Number of children Stunted from 24 to 59 months")
+plot_bar_chart(CEMA_data, "county", "diarrhoea.cases", "Number of children <5 years with Diarrhoea")
+plot_bar_chart(CEMA_data, "county", "Underweight.0..6.months", "Number of children Underweight from 0 to less than 6 months")
+plot_bar_chart(CEMA_data, "county", "Underweight.6.23.months", "Number of children Underweight from 6 to 23 months")
+plot_bar_chart(CEMA_data, "county", "Underweight.24.59.Months", "Number of children Underweight from 24 to 59 months")
+
+```
+
+From the observations, it Nairobi County consistently ranks high across several health indicators, such as total deworming, acute malnutrition, stunting, diarrhea cases, and underweight children in different age brackets. On the other hand, Turkana County stands out with the highest number of stunted and underweight children aged 24-59 months.
+
+
+Part 2: Investigating Child Nutrition Status in different age groups (0-<6 months, 6-23 months, 24-59 months) across the counties. 
+
+Qn. Which age group shows higher rates of stunting and underweight? Are there differences in nutritional status between age groups in specific counties?
+
+
+```{r}
+# Filter the columns related to stunting rates
+stunting_data <- CEMA_data %>% 
+  select(county, contains("stunted"))
+
+# Gather the data to convert it into a tidy format
+stunting_data <- stunting_data %>%
+  gather(key = "age_group", value = "stunting_rate", -county, na.rm = TRUE) %>%
+  mutate(age_group = gsub("stunted ", "", age_group))
+
+# Calculate the average stunting rate for each age group in each county
+avg_stunting_data <- stunting_data %>%
+  group_by(county, age_group) %>%
+  summarise(avg_stunting_rate = mean(stunting_rate, na.rm = TRUE))
+
+# Create a bar plot for average stunting rates by age group in each county
+ggplot(avg_stunting_data, aes(x = county, y = avg_stunting_rate, fill = age_group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Stunting Rates by Age Group in Each County",
+       x = "County",
+       y = "Average Stunting Rate",
+       fill = "Age Group") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 80, hjust = 1)) +
+  scale_fill_discrete(name = "Age Group")
+```
+```{r}
+# Filter the columns related to underweight rates
+underweight_data <- CEMA_data %>% 
+  select(county, contains("Underweight"))
+
+# Gather the data to convert it into a tidy format
+underweight_data <- underweight_data %>%
+  gather(key = "age_group", value = "underweight_rate", -county, na.rm = TRUE) %>%
+  mutate(age_group = gsub("Underweight ", "", age_group))
+
+# Calculate the average underweight rate for each age group in each county
+avg_underweight_data <- underweight_data %>%
+  group_by(county, age_group) %>%
+  summarise(avg_underweight_rate = mean(underweight_rate, na.rm = TRUE))
+
+# Create a bar plot for average underweight rates by age group in each county
+ggplot(avg_underweight_data, aes(x = county, y = avg_underweight_rate, fill = age_group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Underweight Rates by Age Group in Each County",
+       x = "County",
+       y = "Average Underweight Rate",
+       fill = "Age Group") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_fill_discrete(name = "Age Group")
+```
+
+According to the analysis of child nutrition status in different age groups across counties, the findings indicate that the average underweight and stunting rates are highest in Nairobi County for children aged 6-23 months.
+Specifically, the average stunting rate (percentage of children with stunted growth) and average underweight rate (percentage of children who are underweight) are found to be highest in Nairobi County among children aged 6-23 months.
+
+This suggests that children in the 6-23 months age group in Nairobi County may be facing higher nutritional challenges, with a higher proportion of them experiencing stunting and underweight compared to other age groups and counties.
+
+
+Part 3: Finding the Correlation between Health Indicators
+
+Qn: Is there a correlation between acute malnutrition and stunting in children? 
+Qn: Are there any associations between deworming efforts and reduced malnutrition rates?
+
+
+Qn 1. Is there a correlation between acute malnutrition and stunting in children? 
+```{r}
+# Select the columns for acute malnutrition and stunting
+nutrition_data <- CEMA_data %>%
+  select(Acute.Malnutrition, starts_with("stunted"))
+
+# Remove rows with missing values in the selected columns
+nutrition_data <- nutrition_data %>%
+  na.omit()
+```
+
+```{r}
+# Calculate the correlation coefficient between Acute Malnutrition and stunting variables
+correlation_coefficient <- cor(nutrition_data$Acute.Malnutrition, nutrition_data$stunted.0..6.months)
+# Print the correlation coefficient
+print(correlation_coefficient)
+```
+
+Here, the correlation coefficient is 0.0905 which indicates a weak positive linear relationship between Acute Malnutrition and stunting variables. This means that there is a very slight tendency for the two variables to increase together, but the relationship is not strong.
+
+
+Qn 2. Are there any associations between deworming efforts and reduced malnutrition rates?
+
+To investigate any associations between deworming efforts and reduced malnutrition rates, we can use scatter plots to visualize the relationship between the total number of children dewormed and the rates of acute malnutrition, stunting, and underweight.
+```{r}
+# Select the columns for total dewormed, acute malnutrition, stunting, and underweight
+deworming_data <- CEMA_data %>%
+  select(Total.Dewormed, Acute.Malnutrition, starts_with("stunted"), starts_with("Underweight"))
+
+# Remove rows with missing values in the selected columns
+deworming_data <- deworming_data %>%
+  na.omit()
+```
+
+```{r}
+# Scatter plot of Total Dewormed vs. Acute Malnutrition
+ggplot(deworming_data, aes(x = Total.Dewormed, y = Acute.Malnutrition)) +
+  geom_point() +
+  labs(title = "Total Dewormed vs. Acute Malnutrition",
+       x = "Total Dewormed",
+       y = "Acute Malnutrition")
+
+# Scatter plot of Total Dewormed vs. Stunting
+ggplot(deworming_data, aes(x = Total.Dewormed, y = stunted.0..6.months)) +
+  geom_point() +
+  labs(title = "Total Dewormed vs. Stunting (0-6 months)",
+       x = "Total Dewormed",
+       y = "Stunting (0-6 months)")
+
+# Scatter plot of Total Dewormed vs. Underweight
+ggplot(deworming_data, aes(x = Total.Dewormed, y = Underweight.0..6.months)) +
+  geom_point() +
+  labs(title = "Total Dewormed vs. Underweight (0-6 months)",
+       x = "Total Dewormed",
+       y = "Underweight (0-6 months)")
+```
+
+From the scatter plot, the correlation between Acute Malnutrition and stunting is mostly clustered near zero, which indicates a weak or no linear relationship between these two variables. This finding is consistent with the correlation coefficient value of 0.0905, which suggests a very slight positive correlation.
+
+Analyzing the Impact of Deworming Efforts 
+Qn. Do counties with higher deworming rates have lower rates of malnutrition and stunting?
+
+```{r}
+
+# Calculate the average deworming rates for each county
+average_deworming_rates <- CEMA_data %>%
+  group_by(county) %>%
+  summarise(avg_deworming_rate = mean(Total.Dewormed))
+```
+```{r}
+
+# Calculate the average rates of acute malnutrition and stunting for each county
+average_health_indicators <- CEMA_data %>%
+  group_by(county) %>%
+  summarise(avg_acute_malnutrition_rate = mean(Acute.Malnutrition),
+            avg_stunting_rate = mean(stunted.6.23.months))
+
+# Merge the data frames to combine deworming rates and health indicators
+impact_data <- left_join(average_deworming_rates, average_health_indicators, by = "county")
+```
+```{r}
+# Visualize the results using scatter plots
+# Scatter plot for deworming rates vs. acute malnutrition rates
+ggplot(impact_data, aes(x = avg_deworming_rate, y = avg_acute_malnutrition_rate)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Impact of Deworming Efforts on Acute Malnutrition",
+       x = "Average Deworming Rate",
+       y = "Average Acute Malnutrition Rate")
+
+# Scatter plot for deworming rates vs. stunting rates
+ggplot(impact_data, aes(x = avg_deworming_rate, y = avg_stunting_rate)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Impact of Deworming Efforts on Stunting",
+       x = "Average Deworming Rate",
+       y = "Average Stunting Rate")
+```
+
+The scatter plot revealed that as deworming rates increase, there is a positive correlation with both stunting and acute malnutrition rates. However, the line of best fit for stunting exhibited a higher gradient (steeper slope) compared to the line for acute malnutrition. This indicates a stronger positive relationship between deworming rates and stunting rates.
+
+Conversely, the line of best fit for acute malnutrition showed a flatter slope, suggesting a weaker positive relationship between deworming rates and acute malnutrition rates.
+
+These findings suggest that deworming efforts may have a more significant impact on reducing acute malnutrition rates than on stunting rates. However, it also indicates that other factors beyond deworming may play a prominent role in affecting stunting rates in children.
+
+Conclusion 
+
+The analysis conducted on child health indicators in various counties has provided valuable insights into the nutritional status and deworming efforts in children aged 0-59 months. The following key findings emerged from the investigation:
+
+1. Health Indicators Overview: Nairobi County emerged as a significant contributor to the overall child health indicators. It reported the highest total number of children dewormed, the highest number of children stunted (0-6 months, 6-23 months, and 24-59 months), and the highest number of children with acute malnutrition. Additionally, Nairobi County recorded the highest number of children with diarrhea, and underweight in all three age groups.
+
+2. Nutrition Status by Age Group: Children aged 6-23 months showed the highest rates of stunting and underweight across all counties. This age group consistently exhibited the most severe nutritional challenges.
+
+3. Correlation between Acute Malnutrition and Stunting: The analysis of the correlation coefficient between acute malnutrition and stunting indicated a weak positive relationship (correlation coefficient = 0.0905). Although there is a connection between the two indicators, it suggests that other factors may have a more substantial influence on stunting rates in children.
+
+4. Impact of Deworming Efforts: The scatter plot analysis revealed a positive correlation between deworming rates and both stunting and acute malnutrition rates. However, the line of best fit for stunting had a steeper slope, suggesting that deworming efforts may have a more pronounced impact on reducing acute malnutrition rates compared to stunting rates.
+
+Therefore, the analysis highlights the importance of addressing child health indicators in Nairobi County and emphasizes the significance of targeting interventions for children aged 6-23 months, who showed the highest rates of stunting and underweight. Deworming efforts were found to have a positive association with both stunting and acute malnutrition rates, indicating their role in improving child health. However, other factors may be influencing stunting rates, warranting further exploration.
